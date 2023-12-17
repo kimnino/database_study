@@ -222,6 +222,7 @@ ORDER BY나 GROUP BY 같은 처리는 쿼리의 결과가 스트리밍되는 것
 
 ## 정렬 관련 상태 변수
 MySQL 서버는 처리하는 주요 작업에 대해서는 해당 작업의 실행 횟수를 상태 변수로 저장한다.
+
 ![image](https://github.com/kimnino/database_study/assets/140059002/cfef1c1f-9e91-42ef-811f-514823c52bb5)
 ```
     - Sort_merge_passes는 멀티 머지 처리 횟수를 의미
