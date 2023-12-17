@@ -230,3 +230,18 @@ MySQL 서버는 처리하는 주요 작업에 대해서는 해당 작업의 실�
     - Sort_rows는 지금까지 정렬한 전체 레코드 건수를 의미
     - Sort_scan은 풀 테이블 스캔을 통해 검색된 결과에 대한 정렬 작업 횟수다.
 ```
+
+![image](https://github.com/kimnino/database_study/assets/140059002/7c119fdd-a06f-4714-9478-b27e72e70f0d)
+
+```
+    salary 칼럼은 인덱싱 처리가 되지않아 풀 테이블 스캔이 일어나서 Sort_scan의 숫자가 늘어난다.
+```
+
+![image](https://github.com/kimnino/database_study/assets/140059002/3064e3ea-201c-4a48-b2d0-3a5951c07c08)
+
+```
+    salary 칼럼에 인덱스를 생성하고, Sort_range의 숫자가 늘어나는걸 기대한 실습이였는데, Sort_scan이 늘어났다... 왜그런거죠?
+```
+
+
+
