@@ -41,7 +41,7 @@ MySQL은 글로벌 메모리 영역과 세션(로컬) 메모리 영역으로 나
     하지만 너무 크게 설정하면 서버의 메모리가 부족해져서 MySQL 서버가 메모리 부족을 겪을 수 있다.
 
 ## 정렬 알고리즘
-```
+```sql
 -- 옵티마이저 트레이스 활성화
 SET OPTIMIZER_TRACE="enabled=on", END_MARKERS_IN_JSON=on;
 SET OPTIMIZER_TRACE_MAX_MEM_SIZE=1000000;
