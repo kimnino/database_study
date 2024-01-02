@@ -48,6 +48,7 @@ GROUP BY의 기준 칼럼이 인덱스를 전혀 사용하지 못할 때 사용�
 EXPLAIN SELECT e.last_name, AVG(s.salary) FROM employees e, salaries s WHERE s.emp_no=e.emp_no GROUP BY e.last_name;
 ```
 ![임시 테이블을 사용하는 GROUP BY 쿼리 실행 계획](image-4.png)
+
 인덱스를 전혀 사용하지 못해서 "Using temporary" 메시지가 표시됐다.
 "Using filesort"가 표시되지 않는건 MySQL 8.0 이전 버전까지는 GROUP BY가 사용된 쿼리는 그루핑되는 칼럼 기준으로 묵시적 정렬을 해줬지만, MySQL 8.0 버전부터는 묵시적인 정렬은 더 이상 실행되지 않는다. 하지만 ORDER BY를 명시하면 정렬 작업을 실행하므로 "Using filesort" 메시지가 표시된다.
 
