@@ -91,6 +91,7 @@ WHERE e.emp_no=s.emp_no AND s.emp_no BETWEEN 100001 AND 100100;
 ```
 COUNT(DISTINCT s.salary)를 처리하기 위해 임시 테이블을 사용한다. 하지만 실행 계획에는 "Using temporary"를 표시하지 않는다.
 ![COUNT(DISTINCT) 쿼리 실행계획](image-5.png)
+
 위 쿼리의 경우에는 employees 테이블과 salaries 테이블을 조인한 결과에서 salary 칼럼의 값만 저장하는 임시 테이블을 만들어서 사용한다. 이때 임시 테이블의 salary 칼럼에는 유니크 인덱스가 생성되기 때문에 레코드 건수가 많아진다면 상당히 느려질 수 있다.
 
 > DISTINCT가 집합 함수 없이 사용되는 경우와 집합 함수 내에서 사용된 경우 쿼리의 결과가 달라진다. 
