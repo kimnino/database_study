@@ -215,3 +215,85 @@ MySQL 8.0.22 버전 이상 부터는 적합한 서브 쿼리에 대한 Derived C
 
 
 ## 스칼라 서브쿼리 조인
+### 스칼라 서브쿼리의 특징
+```sql
+SET GLOBAL log_bin_trust_function_creators = 1;
+-- log_bin_trust_function_creators 옵션은 MySQL이 function, trigger 생성에 대한 제약을 강제할 수 있는 기능
+
+CREATE FUNCTION  GET_AGENT_NAME (
+    V_AGENT_ID INTEGER
+) RETURNS VARCHAR(20)
+BEGIN
+   DECLARE NAME_TITLE VARCHAR(20);
+   SELECT A.NAME INTO NAME_TITLE FROM AGENT A WHERE agent_id = V_AGENT_ID;
+   RETURN NAME_TITLE;
+END
+```
+GET_AGENT_NAME 함수를 사용하는 아래 쿼리를 실행하면, 함수 안에 있는 SELECT 쿼리를 메인쿼리 건수만큼 
+'재귀적으로' 반복 실행합니다.
+```sql
+SELECT player_id, name, tel, GET_AGENT_NAME(manager_agent_id),
+FROM player;
+```
+
+아래 스칼라 서브쿼리는 메인쿼리 레코드마다 정확히 하나의 값만 반환 <br>
+메인쿼리 건수 만큼 AGENT 테이블을 반복해서 읽는다는 측면에서는 함수와 비슷해 보이지만, 함수처럼 '재귀적으로' 실행하는 구조는 아니다. 재귀의 단점인 **컨텍스트 스위칭 없이** 메인 쿼리와 서브쿼리를 한 몸체처럼 실행.
+```sql
+SELECT player_id, name, tel,
+(SELECT A.NAME FROM AGENT A WHERE agent_id = manager_agent_id)
+FROM player;
+```
+
+더 쉽게 표현하면, 아래 쿼리처럼 이해하면 된다. 스칼라 서브쿼리를 사용한 쿼리문은 아래 NL 조인 방식으로 실행된다.
+차이가 있다면, 스칼라 서브쿼리는 처리 과정에서 캐싱 작용이 일어난다.
+```sql
+SELECT p.player_id, p.name, p.tel, a.name
+FROM player p, agent a
+WHERE a.agent_id = p.manager_agent_id;
+```
+---
+
+#### 궁금점
+![Alt text](image-2.png)
+
+```
+위의 스칼라 서브쿼리가 아래 쿼리와 같다고 설명이 되어있는데, 데이터가 나오는 출력의 정렬방식이 궁금하다.
+player 테이블에 manager_agent_id 관련 인덱스가 작용하지 않았나...
+```
+
+![Alt text](image-3.png)
+
+### 스칼라 서브쿼리 캐싱 효과
+오라클은 조인 횟수를 최소화하려고 입력 값과 출력 값을 내부 캐시에 저장해 둔다.
+MySQL도 동일한 input에 대한 결괏값을 캐싱합니다.
+
+스칼라 서브쿼리는 '입력 값'을 찾아보고, 찾으면 저장된 '출력 값'을 반환한다. 캐시에서 찾지 못할 때만 조인을 수행하며, 결과는 버리지 않고 캐시에 저장해 둔다.
+
+스칼라 서브쿼리 캐싱은 필터 서브쿼리 캐싱과 같은 기능이므로, PGA 공간에 할당된다.
+```sql
+--많이 활용되는 튜닝 기법 스칼라 서브쿼리의 캐싱을 활용하는 것.
+SELECT player_id, name, tel, (SELECT GET_AGENT_NAME(manager_agent_id) FROM dual)
+FROM player;
+```
+
+### 스칼라 서브쿼리 캐싱 부작용
+**캐싱 공간이 부족하다는 것**
+스칼라 서브쿼리 캐싱 효과는 입력 값의 종류가 소수일 때, 효과가 있다.
+
+```sql
+-- 거래구분코드는 20개 값이고, 메인쿼리에 50,000개의 거래를 읽는다고 가정
+-- 메인 쿼리 50,000개를 읽는 동안 거래구분코드별 조인 엑세스는 최초 한 번씩 20번만 조회하면 된다.
+select 거래번호, 고객번호, 영업조직ID, 거래구분코드
+    ,(select 거래구분명 from 거래구분 where 거래구분코드 = t.거래구분코드) 거래구분명
+from 거래 t
+where 거래일자 >= to_char(add_months(sysdate, -3), 'yyyymmdd') -- 50,000만건
+```
+```sql
+-- 고객이 100만명이고, 메인쿼리에 50,000개의 거래를 읽는다고 가정
+-- 메인 쿼리 50,000개를 읽는 동안 캐시를 매번 탐색하지만, 대부분 데이터를 찾지 못해 결국 조인을 해야한다.
+select 거래번호, 고객번호, 영업조직ID, 거래구분코드
+    ,(select 고객명 from 고객 where 고객번호 = t.고객번호) 고객명
+from 거래 t
+where 거래일자 >= to_char(add_months(sysdate, -3), 'yyyymmdd') -- 50,000만건
+```
+
